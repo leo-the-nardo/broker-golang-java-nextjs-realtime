@@ -25,17 +25,27 @@ func NewBook(orderChan chan *Order, orderChanOut chan *Order, wg *sync.WaitGroup
 
 // Trade TODO: Refactor abstractions
 func (this *Book) Trade() {
-	buyOrdersQueue := NewOrderQueue()
-	sellOrdersQueue := NewOrderQueue()
-	heap.Init(buyOrdersQueue)
-	heap.Init(sellOrdersQueue)
+	buyOrdersQueueMap := make(map[string]*OrderQueue)  //assetId -> queue
+	sellOrdersQueueMap := make(map[string]*OrderQueue) //assetId -> queue
+	//heap.Init(buyOrdersQueueMap)
+	//heap.Init(sellOrdersQueueMap)
 
 	for order := range this.OrdersChan {
+		assetId := order.Asset.ID
+		if buyOrdersQueueMap[assetId] == nil { // queue not initialized
+			buyOrdersQueueMap[assetId] = NewOrderQueue() //initialize queue
+			heap.Init(buyOrdersQueueMap[assetId])
+		}
+		if sellOrdersQueueMap[assetId] == nil { // queue not initialized
+			sellOrdersQueueMap[assetId] = NewOrderQueue() //initialize queue
+			heap.Init(sellOrdersQueueMap[assetId])
+		}
+
 		if order.OrderType == "BUY" {
 			buyOrder := order
-			buyOrdersQueue.Push(buyOrder)
-			if sellOrdersQueue.Len() > 0 && sellOrdersQueue.Orders[0].Price <= buyOrder.Price {
-				sellOrder := sellOrdersQueue.Pop().(*Order)
+			buyOrdersQueueMap[assetId].Push(buyOrder)
+			if sellOrdersQueueMap[assetId].Len() > 0 && sellOrdersQueueMap[assetId].Orders[0].Price <= buyOrder.Price {
+				sellOrder := sellOrdersQueueMap[assetId].Pop().(*Order)
 				if sellOrder.PendingShares > 0 { //sellOrder still has shares to sell
 					transaction := NewTransaction(sellOrder, buyOrder, buyOrder.Shares, sellOrder.Price)
 					this.AddTransaction(transaction, this.Wg)
@@ -44,16 +54,17 @@ func (this *Book) Trade() {
 					this.OrdersChanOut <- sellOrder
 					this.OrdersChanOut <- buyOrder
 					if sellOrder.PendingShares > 0 { //sellOrder still has shares to sell
-						sellOrdersQueue.Push(sellOrder) //push back to queue
+						sellOrdersQueueMap[assetId].Push(sellOrder) //push back to queue
 					}
 				}
 
 			}
-		} else if order.OrderType == "SELL" {
+		}
+		if order.OrderType == "SELL" {
 			sellOrder := order
-			sellOrdersQueue.Push(sellOrder)
-			if buyOrdersQueue.Len() > 0 && buyOrdersQueue.Orders[0].Price >= sellOrder.Price {
-				buyOrder := buyOrdersQueue.Pop().(*Order)
+			sellOrdersQueueMap[assetId].Push(sellOrder)
+			if buyOrdersQueueMap[assetId].Len() > 0 && buyOrdersQueueMap[assetId].Orders[0].Price >= sellOrder.Price {
+				buyOrder := buyOrdersQueueMap[assetId].Pop().(*Order)
 				if buyOrder.PendingShares > 0 { //buyOrder still has shares to buy
 					transaction := NewTransaction(sellOrder, buyOrder, buyOrder.Shares, sellOrder.Price)
 					this.AddTransaction(transaction, this.Wg)
@@ -62,7 +73,7 @@ func (this *Book) Trade() {
 					this.OrdersChanOut <- sellOrder
 					this.OrdersChanOut <- buyOrder
 					if buyOrder.PendingShares > 0 { //buyOrder still has shares to buy
-						buyOrdersQueue.Push(buyOrder) //push back to queue
+						buyOrdersQueueMap[assetId].Push(buyOrder) //push back to queue
 					}
 
 				}
@@ -81,15 +92,11 @@ func (this *Book) AddTransaction(transaction *Transaction, wg *sync.WaitGroup) {
 		minShares = buyingShares
 	}
 	transaction.SellingOrder.Investor.UpdateAssetPosition(transaction.SellingOrder.Asset.ID, -minShares)
-	transaction.SellingOrder.PendingShares -= minShares
+	transaction.AddSellOrderPendingShares(-minShares)
 	transaction.BuyingOrder.Investor.UpdateAssetPosition(transaction.BuyingOrder.Asset.ID, minShares)
-	transaction.BuyingOrder.PendingShares -= minShares
-	transaction.Total = float64(transaction.Shares) * transaction.BuyingOrder.Price
-	if transaction.BuyingOrder.PendingShares == 0 {
-		transaction.BuyingOrder.Status = "CLOSED"
-	}
-	if transaction.SellingOrder.PendingShares == 0 {
-		transaction.SellingOrder.Status = "CLOSED"
-	}
+	transaction.AddBuyOrderPendingShares(-minShares)
+	transaction.CalculateTotal(transaction.Shares, transaction.BuyingOrder.Price)
+	transaction.CloseBuyOrder()
+	transaction.CloseSellOrder()
 	this.Transactions = append(this.Transactions, transaction)
 }

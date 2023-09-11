@@ -24,3 +24,25 @@ func NewTransaction(sellingOrder *Order, buyingOrder *Order, shares int, price f
 		DateTime:     time.Now(),
 	}
 }
+
+func (this *Transaction) CalculateTotal(shares int, price float64) {
+	this.Total = float64(shares) * price
+}
+
+func (this *Transaction) CloseBuyOrder() {
+	if this.BuyingOrder.PendingShares == 0 {
+		this.BuyingOrder.Status = "CLOSED"
+	}
+}
+func (this *Transaction) CloseSellOrder() {
+	if this.SellingOrder.PendingShares == 0 {
+		this.SellingOrder.Status = "CLOSED"
+	}
+}
+
+func (this *Transaction) AddBuyOrderPendingShares(shares int) {
+	this.BuyingOrder.PendingShares += shares
+}
+func (this *Transaction) AddSellOrderPendingShares(shares int) {
+	this.SellingOrder.PendingShares += shares
+}
