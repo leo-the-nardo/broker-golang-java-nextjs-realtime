@@ -4,6 +4,7 @@ import { Tabs } from "flowbite-react"
 import { TabItem } from "flowbite-react"
 import { Card } from "flowbite-react"
 import { HiArrowUp, HiShoppingCart } from "@/app/components/react-icons/hi"
+import { ChartComponent } from "@/app/components/ChartComponent"
 
 export default async function HomeBrokerPage({
   params,
@@ -58,7 +59,7 @@ export default async function HomeBrokerPage({
           </div>
         </div>
         <div className="col-span-3 flex flex-grow">
-          {/*<ChartComponent header="Asset 1 - R$ 100" />*/}
+          <ChartComponent header="Asset 1 - R$ 100" />
         </div>
       </div>
     </main>
