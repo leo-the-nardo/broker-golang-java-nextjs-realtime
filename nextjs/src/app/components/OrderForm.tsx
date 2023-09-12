@@ -1,6 +1,11 @@
 import { revalidateTag } from "next/cache"
+import { Button, Label, TextInput } from "flowbite-react"
 
-export function OrderForm(props: { asset_id: string; wallet_id: string }) {
+export function OrderForm(props: {
+  asset_id: string
+  wallet_id: string
+  type: "BUY" | "SELL"
+}) {
   async function initTransaction(formData: FormData) {
     "use server"
     const shares = formData.get("shares")
@@ -32,16 +37,44 @@ export function OrderForm(props: { asset_id: string; wallet_id: string }) {
   }
   return (
     <div>
-      <h1>OrderForm</h1>
+      <h1>Order Form</h1>
       <form action={initTransaction}>
         <input name="asset_id" type="hidden" defaultValue={props.asset_id} />
         <input name="wallet_id" type="hidden" defaultValue={props.wallet_id} />
-        <input name="type" type="hidden" defaultValue="BUY" />
-        <input name="shares" type="number" min={1} placeholder="quantidade" />
+        <input name="type" type="hidden" defaultValue={"BUY"} />
+        <div>
+          <div className="mb-2 block">
+            <Label htmlFor="shares" value="Quantidade" />
+          </div>
+          <TextInput
+            id="shares"
+            name="shares"
+            required
+            type="number"
+            min={1}
+            step={1}
+            defaultValue={1}
+          />
+        </div>
         <br />
-        <input name="price" type="number" min={1} placeholder="preço" />
+        <div>
+          <div className="mb-2 block">
+            <Label htmlFor="shares" value="Preço R$" />
+          </div>
+          <TextInput
+            id="price"
+            name="price"
+            required
+            type="number"
+            min={1}
+            step={1}
+            defaultValue={1}
+          />
+        </div>
         <br />
-        <button>Comprar</button>
+        <Button type="submit" color={props.type === "BUY" ? "green" : "red"}>
+          Confirmar {props.type === "BUY" ? "compra" : "venda"}
+        </Button>
       </form>
     </div>
   )
