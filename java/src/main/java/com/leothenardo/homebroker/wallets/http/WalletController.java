@@ -1,13 +1,11 @@
 package com.leothenardo.homebroker.wallets.http;
 
 import com.leothenardo.homebroker.wallets.application.WalletService;
+import com.leothenardo.homebroker.wallets.dtos.AssetOnWalletDTO;
 import com.leothenardo.homebroker.wallets.dtos.CreateWalletOutputDTO;
 import com.leothenardo.homebroker.wallets.model.Wallet;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -20,16 +18,16 @@ public class WalletController {
 		this.walletService = walletService;
 	}
 
-	@GetMapping
-	public ResponseEntity<List<Wallet>> list() {
-		return ResponseEntity.ok().body(this.walletService.list());
-	}
-
 	@PostMapping
 	public ResponseEntity<CreateWalletOutputDTO> create() {
 		CreateWalletOutputDTO id = this.walletService.create();
 		return ResponseEntity.ok().body(id);
 	}
 
+	@GetMapping("/{id}/assets")
+	public ResponseEntity<List<AssetOnWalletDTO>> listAssets(@PathVariable("id") String id) {
+		return ResponseEntity.ok().body(this.walletService.listAssets(id));
+	}
+	
 
 }

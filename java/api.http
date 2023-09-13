@@ -18,7 +18,7 @@ POST http://localhost:8080/wallets
 
 
 ###
-GET http://localhost:3000/wallets/wallet2/assets
+GET http://localhost:8080/wallets/461c467e-8551-4046-8266-17b3c5c13ebc/assets
 
 ###
 POST http://localhost:3000/wallets/wallet2/assets
