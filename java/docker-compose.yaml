@@ -1,0 +1,20 @@
+version: '3.9'
+
+services:
+  db:
+    image: bitnami/mongodb:5.0.17
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongodb_data_homebroker:/bitnami/mongodb
+    environment:
+      MONGODB_ROOT_PASSWORD: root
+      MONGODB_REPLICA_SET_MODE: primary
+      MONGODB_REPLICA_SET_KEY: 123456
+      MONGODB_DATABASE: homebroker
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
+
+volumes:
+  mongodb_data_homebroker:
+    driver: local

@@ -1,0 +1,75 @@
+GET http://localhost:3000
+
+###
+POST http://localhost:3000/assets
+Content-Type: application/json
+
+{
+  "id": "asset1",
+  "symbol": "A1",
+  "price": 100
+}
+###
+GET http://localhost:8080/wallets
+Content-Type: application/json
+
+###
+POST http://localhost:8080/wallets
+Content-Type: application/json
+
+{
+"id": "wallet2"
+}
+
+
+###
+GET http://localhost:3000/wallets/wallet2/assets
+
+###
+POST http://localhost:3000/wallets/wallet2/assets
+Content-Type: application/json
+
+{
+  "asset_id": "asset1",
+  "shares": 10
+}
+
+###
+# Outra opção: POST http://localhost:3000/wallets/wallet1/orders
+POST http://localhost:3000/wallets/wallet2/orders
+Content-Type: application/json
+
+// se tivesse autenticado, não precisaria do wallet_id
+{
+  "asset_id": "asset1",
+  "shares": 5,
+  "price": 100,
+  "type": "SELL"
+}
+###
+# Outra opção: POST http://localhost:3000/wallets/wallet1/orders
+POST http://localhost:3000/wallets/wallet1/orders
+Content-Type: application/json
+
+// se tivesse autenticado, não precisaria do wallet_id
+{
+  "asset_id": "asset1",
+  "shares": 10,
+  "price": 100,
+  "type": "BUY"
+}
+###
+GET http://localhost:3000/wallets/wallet1/orders
+
+###
+POST http://localhost:3000/wallets/wallet1/orders/execute
+Content-Type: application/json
+
+{
+  "order_id": "659e36ece26d19460fab504a",
+  "status": "CLOSED",
+  "related_investor_id": "xxxx",
+  "broker_transaction_id": "xxxx",
+  "negotiated_shares": 5,
+  "price": 10
+}
