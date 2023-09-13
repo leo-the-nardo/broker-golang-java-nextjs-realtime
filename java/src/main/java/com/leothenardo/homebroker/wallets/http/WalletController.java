@@ -1,4 +1,4 @@
-package com.leothenardo.homebroker.wallets;
+package com.leothenardo.homebroker.wallets.http;
 
 import com.leothenardo.homebroker.wallets.application.WalletService;
 import com.leothenardo.homebroker.wallets.dtos.CreateWalletOutputDTO;
@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.awt.print.Pageable;
 import java.util.List;
 
 @RestController

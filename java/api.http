@@ -1,25 +1,20 @@
 GET http://localhost:3000
 
 ###
-POST http://localhost:3000/assets
+POST http://localhost:8080/assets
 Content-Type: application/json
 
 {
-  "id": "asset1",
-  "symbol": "A1",
+  "symbol": "A2",
   "price": 100
 }
+
 ###
 GET http://localhost:8080/wallets
 Content-Type: application/json
 
 ###
 POST http://localhost:8080/wallets
-Content-Type: application/json
-
-{
-"id": "wallet2"
-}
 
 
 ###
@@ -46,6 +41,7 @@ Content-Type: application/json
   "price": 100,
   "type": "SELL"
 }
+
 ###
 # Outra opção: POST http://localhost:3000/wallets/wallet1/orders
 POST http://localhost:3000/wallets/wallet1/orders
@@ -58,6 +54,7 @@ Content-Type: application/json
   "price": 100,
   "type": "BUY"
 }
+
 ###
 GET http://localhost:3000/wallets/wallet1/orders
 
