@@ -17,12 +17,16 @@ public class Wallet {
 	@Id
 	@Field(value = "_id", targetType = FieldType.STRING)
 	private String id;
+
 	@CreatedDate
 	@Field("created_at")
 	private LocalDateTime createdAt;
+
 	@LastModifiedDate
 	@Field("updated_at")
 	private LocalDateTime updatedAt;
+
+	@Field("assets")
 	private Map<AssetID, AssetOnWallet> walletAssets = new HashMap<>();
 
 	public Wallet() {
@@ -94,6 +98,27 @@ public class Wallet {
 		assetOnWallet.setShares(assetOnWallet.getShares() - shares);
 		this.walletAssets.put(assetId, assetOnWallet);
 
+	}
+
+	private boolean validateIsAbleToSellAsset(AssetID assetId, int shares) {
+		if (!walletAssets.containsKey(assetId)) {
+			return false;
+//			throw new IllegalStateException("Fraudulent order, trying to sell an asset that does not belong to the wallet.");
+		}
+		var assetOnWallet = walletAssets.get(assetId);
+		if (assetOnWallet.getShares() < shares) {
+			return false;
+//			throw new IllegalStateException("Fraudulent order, trying to sell more shares than the wallet has.");
+		}
+		return true;
+	}
+
+	public boolean initSell(String assetToSell, int shares) {
+		var assetId = new AssetID(assetToSell);
+		boolean isValid = this.validateIsAbleToSellAsset(assetId, shares);
+		if (!isValid) return false;
+		var actualShares = this.walletAssets.get(assetId).getShares();
+		this.walletAssets.put(assetId, new AssetOnWallet(actualShares - shares));
 	}
 }
 
