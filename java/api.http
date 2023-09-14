@@ -31,15 +31,15 @@ Content-Type: application/json
 
 ###
 # Outra opção: POST http://localhost:3000/wallets/wallet1/orders
-POST http://localhost:3000/wallets/wallet2/orders
+POST http://localhost:8080/wallets/461c467e-8551-4046-8266-17b3c5c13ebc/orders
 Content-Type: application/json
 
 // se tivesse autenticado, não precisaria do wallet_id
 {
-  "asset_id": "asset1",
+  "assetId": "29c4239e-4d17-4dcd-a46c-995edd81baee",
   "shares": 5,
-  "price": 100,
-  "type": "SELL"
+  "price": 90,
+  "type": "BUY"
 }
 
 ###

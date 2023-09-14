@@ -119,6 +119,7 @@ public class Wallet {
 		if (!isValid) return false;
 		var actualShares = this.walletAssets.get(assetId).getShares();
 		this.walletAssets.put(assetId, new AssetOnWallet(actualShares - shares));
+		return true;
 	}
 }
 
