@@ -24,8 +24,8 @@ func NewTransaction(sellingOrder *Order, buyingOrder *Order) (*Transaction, []er
 	} else {
 		sharesBeingTraded = buyingOrder.PendingShares
 	}
-	buyingOrder.PendingShares -= sharesBeingTraded
-	sellingOrder.PendingShares -= sharesBeingTraded
+	buyingOrder.TakeOutShares(sharesBeingTraded)
+	sellingOrder.TakeOutShares(sharesBeingTraded)
 	transaction := &Transaction{
 		ID:           uuid.NewString(),
 		SellingOrder: sellingOrder,
@@ -39,6 +39,8 @@ func NewTransaction(sellingOrder *Order, buyingOrder *Order) (*Transaction, []er
 	if len(foundErrors) > 0 {
 		return nil, foundErrors
 	}
+	buyingOrder.RegisterTransaction(transaction)
+	sellingOrder.RegisterTransaction(transaction)
 	return transaction, nil
 }
 
@@ -54,23 +56,17 @@ func (this *Transaction) validate() []error {
 	if this.SellingOrder.Price > this.BuyingOrder.Price {
 		foundErrors = append(foundErrors, errors.New("sellingOrder price cannot be greater than buyingOrder price"))
 	}
-	if this.SellingOrder.OrderType != "SELL" {
+	if !this.SellingOrder.IsSellOrder() {
 		foundErrors = append(foundErrors, errors.New("sellingOrder must be of type SELL"))
 	}
-	if this.BuyingOrder.OrderType != "BUY" {
+	if !this.BuyingOrder.IsBuyOrder() {
 		foundErrors = append(foundErrors, errors.New("buyingOrder must be of type BUY"))
 	}
-	if this.SellingOrder.Status == "CLOSED" {
-		foundErrors = append(foundErrors, errors.New("sellingOrder status cannot be CLOSED"))
-	}
-	if this.BuyingOrder.Status == "CLOSED" {
-		foundErrors = append(foundErrors, errors.New("buyingOrder status cannot be CLOSED"))
-	}
 	if this.SellingOrder.PendingShares < 0 {
-		foundErrors = append(foundErrors, errors.New("sellingOrder pendingShares must be greater than 0"))
+		foundErrors = append(foundErrors, errors.New("sellingOrder pendingShares cannot be negative"))
 	}
 	if this.BuyingOrder.PendingShares < 0 {
-		foundErrors = append(foundErrors, errors.New("buyingOrder pendingShares must be greater than 0"))
+		foundErrors = append(foundErrors, errors.New("buyingOrder pendingShares cannot be negative"))
 	}
 	return foundErrors
 }

@@ -12,10 +12,10 @@ import (
 
 func TestBook_HandleOrders(t *testing.T) {
 	orderChanIn := make(chan *dto.OrderInput, 10)
-	orderChanOut := make(chan *dto.OrderOutput, 10)
+	matchChanOut := make(chan *dto.MatchOutput, 10)
 	var wg sync.WaitGroup
 
-	book := services.NewBook(orderChanIn, orderChanOut, &wg)
+	book := services.NewBook(orderChanIn, matchChanOut, &wg)
 
 	// Start listening for orders in a goroutine
 	go book.Listen()
@@ -76,27 +76,28 @@ func TestBook_HandleOrders(t *testing.T) {
 	// Wait for all processing to finish
 	wg.Wait()
 
-	close(orderChanOut)
+	close(matchChanOut)
 
 	// Validate the results if needed
-	var outputs []*dto.OrderOutput
-	for output := range orderChanOut {
+	var outputs []*dto.MatchOutput
+	for output := range matchChanOut {
 		outputs = append(outputs, output)
 	}
-	assert.Equal(t, 2, len(outputs))
-	sellerOrder := outputs[0]
-	buyerOrder := outputs[1]
-	assert.Equal(t, 9, sellerOrder.Shares)
-	assert.Equal(t, 7, sellerOrder.Partial)
-	assert.Equal(t, 1, len(sellerOrder.TransactionsOutput))
-	assert.Equal(t, 69.0, sellerOrder.TransactionsOutput[0].Price)
-	assert.Equal(t, sellerOrder.TransactionsOutput[0].BuyerID, buyerOrder.InvestorID)
+	assert.Equal(t, 1, len(outputs))
+	matchDTO := outputs[0]
+	matchedSellOrder := matchDTO.SellOrder
+	matchedBuyOrder := matchDTO.BuyOrder
 
-	assert.Equal(t, 2, buyerOrder.Shares)
-	assert.Equal(t, 0, buyerOrder.Partial)
-	assert.Equal(t, 1, len(buyerOrder.TransactionsOutput))
+	assert.Equal(t, 9, matchedSellOrder.Shares)
+	assert.Equal(t, 7, matchedSellOrder.Partial)
+	assert.Equal(t, 1, len(matchedSellOrder.TransactionsOutput))
+	assert.Equal(t, 69.0, matchedSellOrder.TransactionsOutput[0].Price)
+	assert.Equal(t, matchedSellOrder.TransactionsOutput[0].BuyerID, matchedBuyOrder.InvestorID)
 
-	assert.Equal(t, 69.0, buyerOrder.TransactionsOutput[0].Price)
-	assert.Equal(t, buyerOrder.TransactionsOutput[0].SellerID, sellerOrder.InvestorID)
+	assert.Equal(t, 2, matchedBuyOrder.Shares)
+	assert.Equal(t, 0, matchedBuyOrder.Partial)
+	assert.Equal(t, 1, len(matchedBuyOrder.TransactionsOutput))
+	assert.Equal(t, 69.0, matchedBuyOrder.TransactionsOutput[0].Price)
+	assert.Equal(t, matchedBuyOrder.TransactionsOutput[0].SellerID, matchedSellOrder.InvestorID)
 
 }

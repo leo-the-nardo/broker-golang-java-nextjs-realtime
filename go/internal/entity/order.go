@@ -10,9 +10,20 @@ type Order struct {
 	PendingShares int     //quantas cotas ainda não foram negociadas/ ainda precisam ser negociadas
 	Price         float64 //preço da ação
 	OrderType     string  //buy | sell
-	Status        string
+	Status        OrderStatus
 	Transactions  []*Transaction //transações que essa ordem participou
 }
+
+type OrderStatus string
+
+const (
+	PENDING   OrderStatus = "PENDING"
+	OPEN      OrderStatus = "OPEN"
+	PARTIAL   OrderStatus = "PARTIAL"
+	CLOSED    OrderStatus = "CLOSED"
+	FULFILLED OrderStatus = "FULFILLED"
+	FAILED    OrderStatus = "FAILED"
+)
 
 func NewOrder(id string, investorID string, assetID string, shares int, price float64, orderType string) (*Order, []error) {
 	order := &Order{
@@ -23,7 +34,7 @@ func NewOrder(id string, investorID string, assetID string, shares int, price fl
 		PendingShares: shares,
 		Price:         price,
 		OrderType:     orderType,
-		Status:        "OPEN",
+		Status:        OPEN,
 		Transactions:  []*Transaction{},
 	}
 	foundErrors := order.validate()
@@ -33,12 +44,28 @@ func NewOrder(id string, investorID string, assetID string, shares int, price fl
 	return order, nil
 }
 
+func (this *Order) RegisterTransaction(transaction *Transaction) {
+	this.Transactions = append(this.Transactions, transaction)
+}
+func (this *Order) TakeOutShares(shares int) {
+	this.PendingShares -= shares
+	if this.PendingShares == 0 {
+		this.Status = FULFILLED
+		return
+	}
+	if this.PendingShares != this.Shares {
+		this.Status = PARTIAL
+	}
+}
+
 func (this *Order) HasShares() bool {
 	return this.PendingShares > 0
 }
-
-func (this *Order) RegisterTransaction(transaction *Transaction) {
-	this.Transactions = append(this.Transactions, transaction)
+func (this *Order) IsBuyOrder() bool {
+	return this.OrderType == "BUY"
+}
+func (this *Order) IsSellOrder() bool {
+	return this.OrderType == "SELL"
 }
 
 func (this *Order) validate() []error {
