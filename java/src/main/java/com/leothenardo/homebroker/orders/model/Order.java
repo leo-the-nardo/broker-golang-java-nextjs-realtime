@@ -1,5 +1,6 @@
 package com.leothenardo.homebroker.orders.model;
 
+import com.leothenardo.homebroker.common.exceptions.EntityValidationException;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -23,13 +24,24 @@ public class Order {
 	@Field("type")
 	private OrderType type;
 
+	@Field("asset_id")
+	private String assetId;
+
+	@Field("price")
+	private double price;
+
+	@Field("shares")
+	private int shares;
+
 	@Field("status")
 	private OrderStatus status;
 
 	@Field("partial")
 	private int partial;
 
-	@CreatedDate
+	@Field("transactions")
+	private List<Transaction> transactions = new ArrayList<>();
+
 	@Field("created_at")
 	private LocalDateTime createdAt;
 
@@ -37,86 +49,93 @@ public class Order {
 	@Field("updated_at")
 	private LocalDateTime updatedAt;
 
-	@Field("asset")
-	private AssetOnOrder assetOnOrder;
-
-
 	public Order() {
 	}
 
-	public Order(String id, String walletId, OrderType type, OrderStatus status, int partial, LocalDateTime createdAt, LocalDateTime updatedAt, AssetOnOrder assetOnOrder) {
+	public Order(String id, String walletId, OrderType type, String assetId, double price, int shares, OrderStatus status, int partial, List<Transaction> transactions, LocalDateTime createdAt, LocalDateTime updatedAt) {
 		this.id = id;
 		this.walletId = walletId;
 		this.type = type;
+		this.assetId = assetId;
+		this.price = price;
+		this.shares = shares;
 		this.status = status;
 		this.partial = partial;
+		this.transactions = transactions;
 		this.createdAt = createdAt;
 		this.updatedAt = updatedAt;
-		this.assetOnOrder = assetOnOrder;
 	}
 
-	public static Order create(String walletId, OrderType type, AssetOnOrder assetOnOrder) {
-		Objects.requireNonNull(walletId);
-		Objects.requireNonNull(type);
-		Objects.requireNonNull(assetOnOrder);
-		return new Order(
+	public static Order create(String walletId, OrderType type, String assetId, double price, int shares) {
+		var order = new Order(
 						UUID.randomUUID().toString(),
 						walletId,
 						type,
+						assetId,
+						price,
+						shares,
 						OrderStatus.PENDING,
-						assetOnOrder.getShares(),
+						shares,
+						new ArrayList<>(),
 						LocalDateTime.now(),
-						null,
-						assetOnOrder
+						null
 		);
+		order.validate();
+		return order;
+	}
+
+	public void registerTransaction(Transaction transaction) {
+		this.partial -= transaction.getShares();
+		if (this.partial == 0) {
+			this.status = OrderStatus.FULFILLED;
+		}
+		if (this.partial > 0) {
+			this.status = OrderStatus.PARTIAL;
+		}
+		if (this.partial < 0) {
+			this.status = OrderStatus.FAILED;
+		}
+		this.transactions.add(transaction);
 	}
 
 	public String getId() {
 		return id;
 	}
 
-	public void setId(String id) {
-		this.id = id;
-	}
-
 	public String getWalletId() {
 		return walletId;
-	}
-
-	public void setWalletId(String walletId) {
-		this.walletId = walletId;
 	}
 
 	public OrderType getType() {
 		return type;
 	}
 
-	public void setType(OrderType type) {
-		this.type = type;
+	public String getAssetId() {
+		return assetId;
+	}
+
+	public double getPrice() {
+		return price;
+	}
+
+	public int getShares() {
+		return shares;
 	}
 
 	public OrderStatus getStatus() {
 		return status;
 	}
 
-	public void setStatus(OrderStatus status) {
-		this.status = status;
-	}
-
 	public int getPartial() {
 		return partial;
 	}
 
-	public void setPartial(int partial) {
-		this.partial = partial;
+	public List<Transaction> getTransactions() {
+		return transactions;
 	}
 
 	public LocalDateTime getCreatedAt() {
 		return createdAt;
-	}
-
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
 	}
 
 	public LocalDateTime getUpdatedAt() {
@@ -127,12 +146,42 @@ public class Order {
 		this.updatedAt = updatedAt;
 	}
 
-	public AssetOnOrder getAssetOnOrder() {
-		return assetOnOrder;
+	private void validate() {
+		List<String> validationErrors = new ArrayList<>();
+		if (this.id == null) {
+			validationErrors.add("Id is required");
+		}
+		if (this.walletId == null) {
+			validationErrors.add("WalletId is required");
+		}
+		if (this.type == null) {
+			validationErrors.add("Type is required");
+		}
+		if (this.status == null) {
+			validationErrors.add("Status is required");
+		}
+		if (this.partial < 0) {
+			validationErrors.add("Partial must be positive");
+		}
+		if (this.shares <= 0) {
+			validationErrors.add("Shares must be greater than 0");
+		}
+		if (this.price <= 0) {
+			validationErrors.add("Price must be greater than 0");
+		}
+		if (this.assetId == null) {
+			validationErrors.add("AssetId is required");
+		}
+		if (this.createdAt == null) {
+			validationErrors.add("CreatedAt is required");
+		}
+		if (this.type != OrderType.BUY && this.type != OrderType.SELL) {
+			validationErrors.add("Type must be BUY or SELL");
+		}
+		if (!validationErrors.isEmpty()) {
+			throw new EntityValidationException(validationErrors);
+		}
 	}
-
-	public void setAssetOnOrder(AssetOnOrder assetOnOrder) {
-		this.assetOnOrder = assetOnOrder;
-	}
+	
 }
 

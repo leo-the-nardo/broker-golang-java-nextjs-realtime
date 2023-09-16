@@ -21,12 +21,12 @@ public record EmitOrderServiceOutputDTO(
 		return new EmitOrderServiceOutputDTO(
 						order.getId(),
 						order.getWalletId(),
-						order.getAssetOnOrder().getAssetId(),
-						order.getAssetOnOrder().getShares(),
-						order.getAssetOnOrder().getPrice(),
+						order.getAssetId(),
+						order.getShares(),
+						order.getPrice(),
 						order.getType(),
 						order.getStatus(),
-						order.getAssetOnOrder().getShares(),
+						order.getPartial(),
 						order.getCreatedAt()
 		);
 	}

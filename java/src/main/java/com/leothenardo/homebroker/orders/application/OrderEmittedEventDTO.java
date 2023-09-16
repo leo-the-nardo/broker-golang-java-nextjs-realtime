@@ -6,6 +6,7 @@ public record OrderEmittedEventDTO(
 				String order_id,
 				String investor_id,
 				String asset_id,
+				int current_shares, // how hany shares of this asset the investor has
 				int shares,
 				double price,
 				OrderType order_type

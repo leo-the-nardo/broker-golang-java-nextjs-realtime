@@ -27,6 +27,4 @@ public class WalletController {
 	public ResponseEntity<List<AssetOnWalletDTO>> listAssets(@PathVariable("id") String id) {
 		return ResponseEntity.ok().body(this.walletService.listAssets(id));
 	}
-
-
 }

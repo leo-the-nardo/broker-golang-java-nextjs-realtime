@@ -7,6 +7,7 @@ import com.leothenardo.homebroker.orders.dtos.EmitOrderInputDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/wallets/{walletId}/orders")
@@ -32,5 +33,11 @@ public class OrderController {
 		));
 	}
 
+	@GetMapping("/events")
+	public SseEmitter streamChanges(
+					@PathVariable("walletId") String walletId
+	) {
+		return this.orderService.subscribe(walletId);
+	}
 
 }
