@@ -7,6 +7,6 @@ public record EmitOrderServiceInputDTO(
 				String assetId,
 				int shares,
 				OrderType type,
-				double price
+				Float price
 ) {
 }

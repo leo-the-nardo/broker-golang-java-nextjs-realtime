@@ -1,6 +1,10 @@
 package com.leothenardo.homebroker.orders.application;
 
+
+import com.leothenardo.homebroker.assets.model.AssetRealtimePoint;
 import com.leothenardo.homebroker.common.exceptions.ResourceNotFoundException;
+import com.leothenardo.homebroker.orders.dtos.FetchOrdersOutputDTO;
+import com.leothenardo.homebroker.orders.dtos.OrderUpdatedEventDTO;
 import com.leothenardo.homebroker.orders.infra.OrderRepository;
 import com.leothenardo.homebroker.orders.model.Order;
 import com.leothenardo.homebroker.orders.model.OrderStatus;
@@ -17,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -35,6 +40,10 @@ public class OrderService {
 		this.orderRepository = orderRepository;
 		this.publisherProvider = publisherProvider;
 		this.mongoTemplate = mongoTemplate;
+	}
+
+	public FetchOrdersOutputDTO fetchOrders(String walletId) {
+		return FetchOrdersOutputDTO.from(this.orderRepository.findAllByWalletIdOrderByCreatedAtDesc(walletId));
 	}
 
 	@Transactional
@@ -112,36 +121,21 @@ public class OrderService {
 						.returnFullDocumentOnUpdate()
 						.build();
 
-// Use ReactiveMongoTemplate to create a ChangeStreamFlux
-		Flux<ChangeStreamEvent<Order>> flux = mongoTemplate.changeStream("orders", options, Order.class);
+		Flux<ChangeStreamEvent<Order>> flux = mongoTemplate.changeStream(Order.COLLECTION_NAME, options, Order.class);
 		flux.subscribe(event -> {
 			try {
 				if (event.getBody().getStatus() == OrderStatus.FULFILLED) {
 					SseEmitter.SseEventBuilder builder = SseEmitter.event()
 									.id(event.getTimestamp().toString())
 									.name("order-fulfilled")
-									.data(new OrderUpdatedEventDTO(
-													event.getBody().getId(),
-													event.getBody().getAssetId(),
-													event.getBody().getShares(),
-													event.getBody().getTransactions().get(event.getBody().getTransactions().size() - 1).getShares(),
-													event.getBody().getTransactions().get(event.getBody().getTransactions().size() - 1).getPrice(),
-													event.getBody().getPrice()
-									));
+									.data(OrderUpdatedEventDTO.from(event.getBody()));
 					emitter.send(builder);
 				}
 				if (event.getBody().getStatus() == OrderStatus.PARTIAL) {
 					SseEmitter.SseEventBuilder builder = SseEmitter.event()
 									.id(event.getTimestamp().toString())
 									.name("order-partial")
-									.data(new OrderUpdatedEventDTO(
-													event.getBody().getId(),
-													event.getBody().getAssetId(),
-													event.getBody().getShares(),
-													event.getBody().getTransactions().get(event.getBody().getTransactions().size() - 1).getShares(),
-													event.getBody().getTransactions().get(event.getBody().getTransactions().size() - 1).getPrice(),
-													event.getBody().getPrice()
-									));
+									.data(OrderUpdatedEventDTO.from(event.getBody()));
 					emitter.send(builder);
 				}
 			} catch (Exception e) {

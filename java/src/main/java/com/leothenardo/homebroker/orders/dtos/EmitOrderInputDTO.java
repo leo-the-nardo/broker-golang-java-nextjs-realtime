@@ -9,6 +9,6 @@ public record EmitOrderInputDTO(
 				@NotBlank String assetId,
 				@NotNull OrderType type,
 				@Positive int shares,
-				@Positive double price
+				@Positive Float price
 ) {
 }

@@ -5,14 +5,14 @@ public class MatchReceivedDTO {
 	private String transaction_id;
 	private String asset_id;
 	private int shares;
-	private double price;
+	private Float price;
 	private OrderDTO buy_order;
 	private OrderDTO sell_order;
 
 	public MatchReceivedDTO() {
 	}
 
-	public MatchReceivedDTO(String transaction_id, String asset_id, int shares, double price, OrderDTO buy_order, OrderDTO sell_order) {
+	public MatchReceivedDTO(String transaction_id, String asset_id, int shares, Float price, OrderDTO buy_order, OrderDTO sell_order) {
 		this.transaction_id = transaction_id;
 		this.asset_id = asset_id;
 		this.shares = shares;
@@ -45,11 +45,11 @@ public class MatchReceivedDTO {
 		this.shares = shares;
 	}
 
-	public double getPrice() {
+	public Float getPrice() {
 		return price;
 	}
 
-	public void setPrice(double price) {
+	public void setPrice(Float price) {
 		this.price = price;
 	}
 

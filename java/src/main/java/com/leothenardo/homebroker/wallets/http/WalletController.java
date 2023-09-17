@@ -5,6 +5,7 @@ import com.leothenardo.homebroker.wallets.dtos.AssetOnWalletDTO;
 import com.leothenardo.homebroker.wallets.dtos.CreateWalletOutputDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -26,5 +27,10 @@ public class WalletController {
 	@GetMapping("/{id}/assets")
 	public ResponseEntity<List<AssetOnWalletDTO>> listAssets(@PathVariable("id") String id) {
 		return ResponseEntity.ok().body(this.walletService.listAssets(id));
+	}
+
+	@GetMapping("/{id}/assets/events")
+	public SseEmitter streamChanges(@PathVariable("id") String walletId) {
+		return this.walletService.subscribe(walletId);
 	}
 }

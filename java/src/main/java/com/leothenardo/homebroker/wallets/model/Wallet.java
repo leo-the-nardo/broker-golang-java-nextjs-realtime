@@ -138,8 +138,13 @@ public class Wallet {
 
 
 	public static class Asset {
+		@Field("asset_id")
 		private String assetId;
+
+		@Field("shares")
 		private int shares;
+
+		@Field("pre_taken_shares")
 		private int preTakenShares; // e.g of use : sell emited but not matched yet
 
 		public Asset() {
@@ -195,6 +200,7 @@ public class Wallet {
 
 
 		public void removeShares(int shares) {
+			this.shares -= shares;
 			this.preTakenShares -= shares;
 		}
 	}

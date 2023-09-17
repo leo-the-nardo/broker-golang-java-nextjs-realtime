@@ -5,8 +5,8 @@ POST http://localhost:8080/assets
 Content-Type: application/json
 
 {
-  "symbol": "A2",
-  "price": 100
+  "symbol": "GOOG",
+  "name": "Google"
 }
 
 ###
@@ -18,55 +18,61 @@ POST http://localhost:8080/wallets
 
 
 ###
-GET http://localhost:8080/wallets/461c467e-8551-4046-8266-17b3c5c13ebc/assets
+GET http://localhost:8080/wallets/1f8fa8ed-0598-48d6-9933-d83aef8c1463/assets
 
 ###
-POST http://localhost:3000/wallets/wallet2/assets
-Content-Type: application/json
-
-{
-  "asset_id": "asset1",
-  "shares": 10
-}
+GET http://localhost:8080/wallets/52a78cc4-a523-42bc-b96e-59599350a8b2/assets
 
 ###
 # Outra opção: POST http://localhost:3000/wallets/wallet1/orders
-POST http://localhost:8080/wallets/461c467e-8551-4046-8266-17b3c5c13ebc/orders
+POST http://localhost:8080/wallets/52a78cc4-a523-42bc-b96e-59599350a8b2/orders
 Content-Type: application/json
 
 // se tivesse autenticado, não precisaria do wallet_id
 {
-  "assetId": "29c4239e-4d17-4dcd-a46c-995edd81baee",
+  "assetId": "AMD",
   "shares": 1,
-  "price": 240,
+  "price": 167.69,
   "type": "BUY"
 }
 
 ###
-# Outra opção: POST http://localhost:3000/wallets/wallet1/orders
-POST http://localhost:8080/wallets/d1834d79-6537-4655-9bfc-fbd5461d056c/orders
+POST http://localhost:8080/wallets/1f8fa8ed-0598-48d6-9933-d83aef8c1463/orders
 Content-Type: application/json
 
 // se tivesse autenticado, não precisaria do wallet_id
 {
-  "assetId": "29c4239e-4d17-4dcd-a46c-995edd81baee",
-  "shares": 6,
-  "price": 228,
+  "assetId": "AMD",
+  "shares": 1,
+  "price": 167.69,
   "type": "SELL"
 }
 
 ###
-GET http://localhost:3000/wallets/wallet1/orders
+GET http://localhost:8080/wallets/1f8fa8ed-0598-48d6-9933-d83aef8c1463/orders
 
 ###
-POST http://localhost:3000/wallets/wallet1/orders/execute
-Content-Type: application/json
+GET http://localhost:8080/wallets/52a78cc4-a523-42bc-b96e-59599350a8b2/orders
 
-{
-  "order_id": "659e36ece26d19460fab504a",
-  "status": "CLOSED",
-  "related_investor_id": "xxxx",
-  "broker_transaction_id": "xxxx",
-  "negotiated_shares": 5,
-  "price": 10
-}
+
+###
+GET http://localhost:8080/assets/PETR4/daily
+
+###
+GET http://localhost:8080/assets/GOOG/series
+
+###
+GET http://localhost:8080/assets/AMD/series/events
+
+###
+GET http://localhost:8080/assets/AMD/candle
+
+###
+GET http://localhost:8080/assets/AMD/candle/events
+
+###
+GET http://localhost:8080/assets/in?symbols=AMD,AMZN,AAPL,IBM,GOOG,ASDASD,
+
+###
+GET http://localhost:8080/assets?notIn=JNJ,WMT&page=1&size=1
+

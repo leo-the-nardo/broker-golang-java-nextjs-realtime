@@ -4,6 +4,7 @@ import com.leothenardo.homebroker.orders.application.EmitOrderServiceInputDTO;
 import com.leothenardo.homebroker.orders.application.EmitOrderServiceOutputDTO;
 import com.leothenardo.homebroker.orders.application.OrderService;
 import com.leothenardo.homebroker.orders.dtos.EmitOrderInputDTO;
+import com.leothenardo.homebroker.orders.dtos.FetchOrdersOutputDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +39,13 @@ public class OrderController {
 					@PathVariable("walletId") String walletId
 	) {
 		return this.orderService.subscribe(walletId);
+	}
+
+	@GetMapping()
+	public ResponseEntity<FetchOrdersOutputDTO> fetchOrders(
+					@PathVariable("walletId") String walletId
+	) {
+		return ResponseEntity.ok().body(this.orderService.fetchOrders(walletId));
 	}
 
 }

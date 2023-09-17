@@ -7,7 +7,7 @@ public record ExecuteTransactionServiceInputDTO(
 				String sellerId,
 				String brokerTransactionId,
 				int negotiatedShares,
-				double price,
+				Float price,
 				String assetId
 ) {
 }

@@ -15,7 +15,7 @@ public class MatchListener {
 		this.orderService = orderService;
 	}
 
-	@KafkaListener(topics = "match", groupId = "orders")
+	@KafkaListener(topics = "match", groupId = "orders", containerFactory = "matchKafkaListenerContainerFactory")
 	public void consume(@Payload MatchReceivedDTO matchReceived, Acknowledgment ack) {
 		System.out.println("Match received: " + matchReceived);
 		try {
@@ -29,7 +29,7 @@ public class MatchListener {
 							matchReceived.getPrice(),
 							matchReceived.getAsset_id()));
 			ack.acknowledge();
-			
+
 		} catch (Exception e) { // TODO: send to DLQ
 			System.out.println("Error: " + e.getMessage());
 		}

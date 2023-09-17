@@ -14,7 +14,22 @@ services:
       MONGODB_DATABASE: homebroker
     extra_hosts:
       - "host.docker.internal:172.17.0.1"
+  timescaledb:
+    image: timescale/timescaledb-ha:pg14-latest
+    container_name: timescaledb
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: homebroker
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
 
 volumes:
   mongodb_data_homebroker:
+    driver: local
+  timescaledb-data:
     driver: local
