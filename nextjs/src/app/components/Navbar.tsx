@@ -15,7 +15,7 @@ export default function DefaultNavbar() {
   const params = useParams()
 
   return (
-    <Navbar fluid rounded>
+    <Navbar fluid rounded className="dark:bg-[#252131]">
       <NavbarBrand href="">
         <Image
           className="mr-3 h-6 sm:h-9"

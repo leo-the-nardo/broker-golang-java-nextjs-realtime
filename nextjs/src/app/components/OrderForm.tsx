@@ -1,47 +1,52 @@
-import { revalidateTag } from "next/cache"
+"use client"
 import { Button, Label, TextInput } from "flowbite-react"
+import { Order } from "@/app/models"
+import { FormEvent } from "react"
+import { useOrders } from "@/app/contexts/order-context"
 
-export function OrderForm(props: {
-  asset_id: string
-  wallet_id: string
+type OrderFormProps = {
+  assetId: string
+  walletId: string
   type: "BUY" | "SELL"
-}) {
-  async function initTransaction(formData: FormData) {
-    "use server"
-    const shares = formData.get("shares")
-    const price = formData.get("price")
-    const wallet_id = formData.get("wallet_id") //ideally this comes from the cookie
-    const asset_id = formData.get("asset_id")
-    const type = formData.get("type")
+}
+export function OrderForm(props: OrderFormProps) {
+  const { orders, updateOrders } = useOrders()
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
     const body = JSON.stringify({
-      shares,
-      price,
-      asset_id,
-      type,
-      status: "OPEN",
-      Asset: {
-        id: asset_id,
-        symbol: "PETR4",
-        price: 30,
-      },
+      shares: event.currentTarget.shares.value,
+      price: event.currentTarget.price.value,
+      assetId: props.assetId,
+      type: props.type,
     })
-    console.log(body)
-    await fetch(`http://localhost:8000/wallets/${wallet_id}/orders`, {
-      method: "POST",
-      body: body,
-      headers: {
-        "Content-Type": "application/json",
+    // console.log(body)
+    console.log("FETCHING POST")
+    const response = await fetch(
+      `http://localhost:8080/wallets/${props.walletId}/orders`,
+      {
+        method: "POST",
+        body: body,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
       },
-    })
-    revalidateTag(`orders-wallet-${wallet_id}`)
+    )
+    console.log("FETCHING POST DONE")
+    const order: Order = await response.json()
+    console.log(
+      "OrderForm , order event received and send to updateOrders Context",
+      order,
+    )
+    updateOrders(order)
+    console.log("Update orders completed", orders)
   }
   return (
     <div>
-      <h1>Order Form</h1>
-      <form action={initTransaction}>
-        <input name="asset_id" type="hidden" defaultValue={props.asset_id} />
-        <input name="wallet_id" type="hidden" defaultValue={props.wallet_id} />
-        <input name="type" type="hidden" defaultValue={"BUY"} />
+      <form onSubmit={handleSubmit}>
+        <input name="asset_id" type="hidden" defaultValue={props.assetId} />
+        <input name="wallet_id" type="hidden" defaultValue={props.walletId} />
+        <input name="type" type="hidden" defaultValue={props.type} />
         <div>
           <div className="mb-2 block">
             <Label htmlFor="shares" value="Quantidade" />
@@ -67,12 +72,18 @@ export function OrderForm(props: {
             required
             type="number"
             min={1}
-            step={1}
+            step={0.01}
             defaultValue={1}
           />
         </div>
         <br />
-        <Button type="submit" color={props.type === "BUY" ? "green" : "red"}>
+        <Button
+          type="submit"
+          className={
+            props.type === "BUY" ? "dark:bg-[#228F75]" : "dark:bg-[#D73A5E]"
+          }
+          color={props.type === "BUY" ? "green" : "red"}
+        >
           Confirmar {props.type === "BUY" ? "compra" : "venda"}
         </Button>
       </form>

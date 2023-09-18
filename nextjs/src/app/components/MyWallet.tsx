@@ -1,6 +1,5 @@
-import { WalletAsset } from "@/app/models"
+"use client"
 import {
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -9,52 +8,54 @@ import {
   TableRow,
 } from "flowbite-react"
 import Link from "next/link"
+import { useWallets } from "@/app/contexts/wallet-context"
 
-async function getWalletAssets(wallet_id: string): Promise<WalletAsset[]> {
-  const response = await fetch(
-    `http://localhost:8000/wallets/${wallet_id}/assets`,
-    {
-      // cache: "no-store", <- always fetch from server
-      next: {
-        // revalidate: isHomeBrokerClosed() ? 60 * 60 : 5,
-        revalidate: 1,
-      },
-    },
-  )
-  return response.json()
-}
+export default function MyWallet(props: {
+  wallet_id: string
+  className?: string
+}) {
+  const { wallet, updateWallet } = useWallets()
 
-export default async function MyWallet(props: { wallet_id: string }) {
-  const walletAssets = await getWalletAssets(props.wallet_id)
+  console.log("wallet:", wallet)
   return (
-    <Table>
-      <TableHead>
-        <TableHeadCell>Nome</TableHeadCell>
-        <TableHeadCell>Preço R$</TableHeadCell>
-        <TableHeadCell>Quant.</TableHeadCell>
-        <TableHeadCell>
-          <span className="sr-only">Comprar/Vender</span>
-        </TableHeadCell>
-      </TableHead>
-      <TableBody className="divide-y">
-        {walletAssets.map((walletAsset, key) => (
-          <TableRow className="border-gray-700 bg-gray-800" key={key}>
-            <TableCell className="whitespace-nowrap font-medium text-white">
-              {walletAsset.Asset.id} ({walletAsset.Asset.symbol})
-            </TableCell>
-            <TableCell>{walletAsset.Asset.price}</TableCell>
-            <TableCell>{walletAsset.shares}</TableCell>
-            <TableCell>
-              <Link
-                className="font-medium text-cyan-500 hover:underline"
-                href={`/${props.wallet_id}/homebroker/${walletAsset.Asset.id}`}
-              >
-                Comprar/Vender
-              </Link>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <div className={props.className ?? ""}>
+      <Table
+        theme={{
+          head: { cell: { base: "bg-[#252131] p-4" } },
+          body: {
+            cell: {
+              base: "bg-[#191724] p-4",
+            },
+          },
+        }}
+      >
+        <TableHead>
+          <TableHeadCell>Nome</TableHeadCell>
+          <TableHeadCell>Quant.</TableHeadCell>
+          <TableHeadCell>
+            <span className="sr-only">Comprar/Vender</span>
+          </TableHeadCell>
+        </TableHead>
+        <TableBody className="divide-y">
+          {wallet!.map((assetInfo, key) => (
+            <TableRow className="border-gray-700 bg-gray-800" key={key}>
+              <TableCell className="whitespace-nowrap font-medium text-white">
+                {assetInfo.assetId} ({assetInfo.name})
+              </TableCell>
+              {/*<TableCell>{"prc"}</TableCell>*/}
+              <TableCell>{assetInfo.shares}</TableCell>
+              <TableCell>
+                <Link
+                  className="font-medium text-cyan-500 hover:underline"
+                  href={`/${props.wallet_id}/homebroker/${assetInfo.assetId}`}
+                >
+                  Comprar/Vender
+                </Link>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
