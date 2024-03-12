@@ -1,17 +1,17 @@
 package com.leothenardo.homebroker.orders.application;
 
-import com.leothenardo.homebroker.orders.model.Order;
-import com.leothenardo.homebroker.orders.model.OrderStatus;
-import com.leothenardo.homebroker.orders.model.OrderType;
+import com.leothenardo.homebroker.orders.entities.Order;
+import com.leothenardo.homebroker.orders.entities.OrderStatus;
+import com.leothenardo.homebroker.orders.entities.OrderType;
 
 import java.time.LocalDateTime;
 
 public record EmitOrderServiceOutputDTO(
 				String id,
 				String walletId,
-				String assetId,
+				String symbol,
 				int shares,
-				double price,
+				Double price,
 				OrderType type,
 				OrderStatus status,
 				int partial,

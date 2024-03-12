@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 
 import java.time.Instant;
 
-//This is a <- Materialized View -> Entity PostgresSQL + TimescaleDB
+//This is a -> Materialized View <- PostgresSQL + TimescaleDB
 @Entity
 public class OneDayCandle {
 

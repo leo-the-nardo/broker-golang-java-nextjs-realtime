@@ -1,6 +1,6 @@
 package com.leothenardo.homebroker.orders.dtos;
 
-import com.leothenardo.homebroker.orders.model.Order;
+import com.leothenardo.homebroker.orders.entities.Order;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ public class FetchOrdersOutputDTO {
 			OrdersDTO ordersDTO = new OrdersDTO();
 			ordersDTO.id = order.getId();
 			ordersDTO.type = order.getType().toString();
-			ordersDTO.assetId = order.getAssetId();
+			ordersDTO.symbol = order.getAssetId();
 			ordersDTO.price = order.getPrice();
 			ordersDTO.shares = order.getShares();
 			ordersDTO.status = order.getStatus().toString();
@@ -46,8 +46,8 @@ public class FetchOrdersOutputDTO {
 	public static class OrdersDTO {
 		private String id;
 		private String type;
-		private String assetId;
-		private double price;
+		private String symbol;
+		private Double price;
 		private int shares;
 		private String status;
 		private int partial;
@@ -73,19 +73,19 @@ public class FetchOrdersOutputDTO {
 			this.type = type;
 		}
 
-		public String getAssetId() {
-			return assetId;
+		public String getSymbol() {
+			return symbol;
 		}
 
-		public void setAssetId(String assetId) {
-			this.assetId = assetId;
+		public void setSymbol(String symbol) {
+			this.symbol = symbol;
 		}
 
-		public double getPrice() {
+		public Double getPrice() {
 			return price;
 		}
 
-		public void setPrice(double price) {
+		public void setPrice(Double price) {
 			this.price = price;
 		}
 

@@ -1,68 +1,63 @@
 package com.leothenardo.homebroker.orders.application;
 
 
-import com.leothenardo.homebroker.assets.model.AssetRealtimePoint;
-import com.leothenardo.homebroker.common.exceptions.ResourceNotFoundException;
+import com.leothenardo.homebroker._common.exceptions.ResourceNotFoundException;
+import com.leothenardo.homebroker._providers.PublisherProvider;
+import com.leothenardo.homebroker.orders.dtos.EmitOrderInputDTO;
 import com.leothenardo.homebroker.orders.dtos.FetchOrdersOutputDTO;
-import com.leothenardo.homebroker.orders.dtos.OrderUpdatedEventDTO;
-import com.leothenardo.homebroker.orders.infra.OrderRepository;
-import com.leothenardo.homebroker.orders.model.Order;
-import com.leothenardo.homebroker.orders.model.OrderStatus;
-import com.leothenardo.homebroker.orders.model.OrderType;
-import com.leothenardo.homebroker.orders.model.Transaction;
-import com.leothenardo.homebroker.providers.PublisherProvider;
-import com.leothenardo.homebroker.wallets.infra.WalletRepository;
-import com.leothenardo.homebroker.wallets.model.Wallet;
-import org.springframework.data.mongodb.core.ChangeStreamEvent;
-import org.springframework.data.mongodb.core.ChangeStreamOptions;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import com.leothenardo.homebroker.orders.entities.Order;
+import com.leothenardo.homebroker.orders.entities.OrderType;
+import com.leothenardo.homebroker.orders.entities.Transaction;
+import com.leothenardo.homebroker.orders.exceptions.InsufficientAssetsOnWallet;
+import com.leothenardo.homebroker.orders.repositories.OrderRepository;
+import com.leothenardo.homebroker.users.application.AuthService;
+import com.leothenardo.homebroker.wallets.entities.Wallet;
+import com.leothenardo.homebroker.wallets.repositories.WalletRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import reactor.core.publisher.Flux;
 
-import java.time.LocalDate;
 import java.util.Optional;
-import java.util.UUID;
-
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
-import static org.springframework.data.mongodb.core.query.Criteria.*;
 
 @Service
 public class OrderService {
+	private final Logger log = LoggerFactory.getLogger(OrderService.class);
 	private final WalletRepository walletRepository;
 	private final OrderRepository orderRepository;
 	private final PublisherProvider publisherProvider;
-	private final ReactiveMongoTemplate mongoTemplate;
+	private final AuthService authService;
 
-	public OrderService(WalletRepository walletRepository, OrderRepository orderRepository, PublisherProvider publisherProvider, ReactiveMongoTemplate mongoTemplate) {
+	public OrderService(WalletRepository walletRepository, OrderRepository orderRepository, PublisherProvider publisherProvider, AuthService authService) {
 		this.walletRepository = walletRepository;
 		this.orderRepository = orderRepository;
 		this.publisherProvider = publisherProvider;
-		this.mongoTemplate = mongoTemplate;
+		this.authService = authService;
 	}
 
-	public FetchOrdersOutputDTO fetchOrders(String walletId) {
+	public FetchOrdersOutputDTO fetchOrders() {
+		var walletId = authService.getMe().getWalletId();
 		return FetchOrdersOutputDTO.from(this.orderRepository.findAllByWalletIdOrderByCreatedAtDesc(walletId));
 	}
 
 	@Transactional
-	public EmitOrderServiceOutputDTO emitOrder(EmitOrderServiceInputDTO input) {
+	public EmitOrderServiceOutputDTO emitOrder(EmitOrderInputDTO input) {
+		var walletId = authService.getMe().getWalletId();
 		OrderType type = input.type();
 		var order = Order.create(
-						input.walletId(),
+						walletId,
 						type,
 						input.assetId(),
 						input.price(),
 						input.shares()
 		);
-		Wallet myWallet = this.walletRepository.findById(input.walletId())
-						.orElseThrow(() -> new ResourceNotFoundException(input.walletId()));
+		Wallet myWallet = this.walletRepository.findById(walletId)
+						.orElseThrow(() -> new ResourceNotFoundException(walletId));
 		int currentShares = myWallet.availableShares(input.assetId());
 		if (type == OrderType.SELL) { //validate & compute wallet
 			boolean ok = myWallet.initSell(input.assetId(), input.shares());
 			if (!ok) {
-				throw new IllegalStateException("not able to sell");
+				throw new InsufficientAssetsOnWallet();
 			}
 			this.orderRepository.save(order);
 			this.walletRepository.save(myWallet);
@@ -70,16 +65,17 @@ public class OrderService {
 		if (type == OrderType.BUY) {
 			this.orderRepository.save(order);
 		}
-
-		this.publisherProvider.publish("input-orders", new OrderEmittedEventDTO(  // TODO: unhardcode queue name
+		var message = new OrderEmittedEventDTO(
 						order.getId(),
-						UUID.randomUUID().toString(),
+						order.getWalletId(),
 						input.assetId(),
 						currentShares,
 						input.shares(),
 						input.price(),
 						input.type()
-		));
+		);
+		System.out.println("Emitting order: " + message);
+		this.publisherProvider.publish("input-orders", message);
 		return EmitOrderServiceOutputDTO.from(order);
 	}
 
@@ -108,40 +104,14 @@ public class OrderService {
 		);
 		buyOrder.registerTransaction(transaction);
 		sellOrder.registerTransaction(transaction);
-		this.orderRepository.save(buyOrder);
-		this.orderRepository.save(sellOrder);
-		this.walletRepository.save(buyWallet);
-		this.walletRepository.save(sellWallet);
+		try {
+			this.orderRepository.save(buyOrder);
+			this.orderRepository.save(sellOrder);
+			this.walletRepository.save(buyWallet);
+			this.walletRepository.save(sellWallet);
+		} catch (Exception e) { //TODO: send to dead letter
+			System.out.println("Error on execute transaction: " + e.getMessage());
+		}
 	}
 
-	public SseEmitter subscribe(String walletId) {
-		SseEmitter emitter = new SseEmitter(0L);
-		ChangeStreamOptions options = ChangeStreamOptions.builder()
-						.filter(newAggregation(match(where("wallet_id").is(walletId))))
-						.returnFullDocumentOnUpdate()
-						.build();
-
-		Flux<ChangeStreamEvent<Order>> flux = mongoTemplate.changeStream(Order.COLLECTION_NAME, options, Order.class);
-		flux.subscribe(event -> {
-			try {
-				if (event.getBody().getStatus() == OrderStatus.FULFILLED) {
-					SseEmitter.SseEventBuilder builder = SseEmitter.event()
-									.id(event.getTimestamp().toString())
-									.name("order-fulfilled")
-									.data(OrderUpdatedEventDTO.from(event.getBody()));
-					emitter.send(builder);
-				}
-				if (event.getBody().getStatus() == OrderStatus.PARTIAL) {
-					SseEmitter.SseEventBuilder builder = SseEmitter.event()
-									.id(event.getTimestamp().toString())
-									.name("order-partial")
-									.data(OrderUpdatedEventDTO.from(event.getBody()));
-					emitter.send(builder);
-				}
-			} catch (Exception e) {
-				emitter.completeWithError(e);
-			}
-		}, emitter::completeWithError, emitter::complete);
-		return emitter;
-	}
 }

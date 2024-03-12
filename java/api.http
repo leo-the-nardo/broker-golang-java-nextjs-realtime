@@ -59,20 +59,23 @@ GET http://localhost:8080/wallets/52a78cc4-a523-42bc-b96e-59599350a8b2/orders
 GET http://localhost:8080/assets/PETR4/daily
 
 ###
-GET http://localhost:8080/assets/GOOG/series
+GET https://localhost:8080/assets/IBM/series
 
 ###
 GET http://localhost:8080/assets/AMD/series/events
 
 ###
-GET http://localhost:8080/assets/AMD/candle
+GET https://localhost:8080/assets/AAPL/candle
+
 
 ###
-GET http://localhost:8080/assets/AMD/candle/events
+GET https://localhost:8080/assets/AAPL/candle/events
 
 ###
 GET http://localhost:8080/assets/in?symbols=AMD,AMZN,AAPL,IBM,GOOG,ASDASD,
 
 ###
-GET http://localhost:8080/assets?notIn=JNJ,WMT&page=1&size=1
+GET http://localhost:8080/assets?notIn=JNJ,WMT&page=1&size=10
 
+###
+GET https://localhost:8080/assets?notIn=NARUTO&size=100

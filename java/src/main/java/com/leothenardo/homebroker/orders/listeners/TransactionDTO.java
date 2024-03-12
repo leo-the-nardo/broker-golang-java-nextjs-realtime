@@ -4,13 +4,13 @@ public class TransactionDTO {
 	private String transaction_id;
 	private String buyer_id;
 	private String seller_id;
-	private double price;
+	private Double price;
 	private int shares;
 
 	public TransactionDTO() {
 	}
 
-	public TransactionDTO(String transaction_id, String buyer_id, String seller_id, double price, int shares) {
+	public TransactionDTO(String transaction_id, String buyer_id, String seller_id, Double price, int shares) {
 		this.transaction_id = transaction_id;
 		this.buyer_id = buyer_id;
 		this.seller_id = seller_id;
@@ -42,11 +42,11 @@ public class TransactionDTO {
 		this.seller_id = seller_id;
 	}
 
-	public double getPrice() {
+	public Double getPrice() {
 		return price;
 	}
 
-	public void setPrice(double price) {
+	public void setPrice(Double price) {
 		this.price = price;
 	}
 

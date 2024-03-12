@@ -1,6 +1,6 @@
 package com.leothenardo.homebroker.wallets.dtos;
 
-import com.leothenardo.homebroker.wallets.model.Wallet;
+import com.leothenardo.homebroker.wallets.entities.Wallet;
 
 public record AssetOnWalletDTO(
 				String assetId,

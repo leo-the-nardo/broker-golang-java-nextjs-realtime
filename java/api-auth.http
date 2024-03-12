@@ -1,0 +1,37 @@
+###
+POST http://localhost:8080/api/signup
+Content-Type: application/json
+
+{
+  "username": "griopops@gmail.com",
+  "password": "giropops",
+  "name": "Giropopson"
+}
+
+###
+POST https://localhost:8080/api/auth/signin
+Content-Type: application/json
+
+{
+  "username": "giropops@gmail.com",
+  "password": "giropops",
+  "token": "689bd003-48f8-4aed-a19f-9bcc87b39a14"
+}
+
+###
+
+POST http://localhost:8080/api/auth/refreshToken
+Content-Type: application/json
+
+{
+  "token": "b617d632-237d-4687-8bd8-5ee4c848cab5"
+}
+
+
+###
+POST http://localhost:8080/api/v1/auth/login/google
+Content-Type: application/json
+
+{
+  "idToken": "123123"
+}

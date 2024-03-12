@@ -1,16 +1,17 @@
 package com.leothenardo.homebroker.wallets.application;
 
-import com.leothenardo.homebroker.common.exceptions.ResourceNotFoundException;
+import com.leothenardo.homebroker._common.exceptions.ResourceNotFoundException;
+import com.leothenardo.homebroker.users.application.AuthService;
 import com.leothenardo.homebroker.wallets.dtos.AssetOnWalletDTO;
-import com.leothenardo.homebroker.wallets.dtos.CreateWalletOutputDTO;
-import com.leothenardo.homebroker.wallets.infra.WalletRepository;
-import com.leothenardo.homebroker.wallets.model.Wallet;
+import com.leothenardo.homebroker.wallets.entities.Wallet;
+import com.leothenardo.homebroker.wallets.repositories.WalletRepository;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.ChangeStreamOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -23,21 +24,19 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 public class WalletService {
 	private final WalletRepository walletRepository;
 	private final ReactiveMongoTemplate mongoTemplate;
+	private final AuthService authService;
 
-	public WalletService(WalletRepository walletRepository, ReactiveMongoTemplate mongoTemplate) {
+	public WalletService(WalletRepository walletRepository, ReactiveMongoTemplate mongoTemplate, AuthService authService) {
 		this.walletRepository = walletRepository;
 		this.mongoTemplate = mongoTemplate;
+		this.authService = authService;
 	}
 
-	@Transactional
-	public CreateWalletOutputDTO create() {
-		var createdWallet = Wallet.create();
-		this.walletRepository.save(createdWallet);
-		return new CreateWalletOutputDTO(createdWallet.getId());
-	}
 
 	@Transactional(readOnly = true)
-	public List<AssetOnWalletDTO> listAssets(String walletId) {
+	public List<AssetOnWalletDTO> listAssets() {
+		var walletId = authService.getMe().getWalletId();
+
 		List<Wallet.Asset> assets = this.walletRepository.findById(walletId)
 						.map(Wallet::getAssets)
 						.orElseThrow(() -> new ResourceNotFoundException(walletId));
@@ -46,7 +45,8 @@ public class WalletService {
 
 	}
 
-	public SseEmitter subscribe(String walletId) {
+	public SseEmitter subscribe() {
+		String walletId = authService.getMe().getWalletId();
 		SseEmitter emitter = new SseEmitter(0L);
 		ChangeStreamOptions options = ChangeStreamOptions.builder()
 						.filter(newAggregation(match(where("_id").is(walletId))))
@@ -54,7 +54,7 @@ public class WalletService {
 						.build();
 
 		Flux<ChangeStreamEvent<Wallet>> flux = mongoTemplate.changeStream(Wallet.COLLECTION_NAME, options, Wallet.class);
-		flux.subscribe(event -> {
+		Disposable disposable = flux.subscribe(event -> {
 			try {
 				SseEmitter.SseEventBuilder builder = SseEmitter.event()
 								.id(event.getTimestamp().toString())
@@ -65,6 +65,8 @@ public class WalletService {
 				emitter.completeWithError(e);
 			}
 		}, emitter::completeWithError, emitter::complete);
+		emitter.onCompletion(disposable::dispose);
+		emitter.onError(e -> disposable.dispose());
 		return emitter;
 	}
 

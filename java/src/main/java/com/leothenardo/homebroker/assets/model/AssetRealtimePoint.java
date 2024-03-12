@@ -22,7 +22,7 @@ public class AssetRealtimePoint {
 	private String symbol;
 
 	@Field("price")
-	private Double price;
+	private Float price;
 
 	@Field("day_volume")
 	private Integer dayVolume;
@@ -30,14 +30,14 @@ public class AssetRealtimePoint {
 	public AssetRealtimePoint() {
 	}
 
-	public AssetRealtimePoint(Instant time, String symbol, Double price, Integer dayVolume) {
+	public AssetRealtimePoint(Instant time, String symbol, Float price, Integer dayVolume) {
 		this.time = time;
 		this.symbol = symbol;
 		this.price = price;
 		this.dayVolume = dayVolume;
 	}
 
-	public static AssetRealtimePoint create(String symbol, Double price, Integer volume) {
+	public static AssetRealtimePoint create(String symbol, Float price, Integer volume) {
 		return new AssetRealtimePoint(Instant.now(), symbol, price, volume);
 	}
 
@@ -57,11 +57,11 @@ public class AssetRealtimePoint {
 		this.symbol = symbol;
 	}
 
-	public Double getPrice() {
+	public Float getPrice() {
 		return price;
 	}
 
-	public void setPrice(Double price) {
+	public void setPrice(Float price) {
 		this.price = price;
 	}
 

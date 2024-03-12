@@ -1,16 +1,16 @@
 package com.leothenardo.homebroker.assets.application;
 
+import com.leothenardo.homebroker._common.exceptions.ResourceNotFoundException;
 import com.leothenardo.homebroker.assets.dtos.AssetPointComputedEvent;
 import com.leothenardo.homebroker.assets.dtos.CreateAssetInputDTO;
 import com.leothenardo.homebroker.assets.dtos.CreateAssetOutputDTO;
 import com.leothenardo.homebroker.assets.dtos.FindAssetOutputDTO;
-import com.leothenardo.homebroker.assets.infra.AssetRealtimePointRepository;
-import com.leothenardo.homebroker.assets.infra.AssetRepository;
-import com.leothenardo.homebroker.assets.infra.OneDayCandleRepository;
 import com.leothenardo.homebroker.assets.model.Asset;
-import com.leothenardo.homebroker.assets.model.OneDayCandle;
 import com.leothenardo.homebroker.assets.model.AssetRealtimePoint;
-import com.leothenardo.homebroker.common.exceptions.ResourceNotFoundException;
+import com.leothenardo.homebroker.assets.model.OneDayCandle;
+import com.leothenardo.homebroker.assets.repositories.AssetRealtimePointRepository;
+import com.leothenardo.homebroker.assets.repositories.AssetRepository;
+import com.leothenardo.homebroker.assets.repositories.OneDayCandleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,13 +24,13 @@ public class AssetService {
 	private final AssetRepository assetRepository;
 	private final AssetRealtimePointRepository assetRealtimePointRepository;
 	private final OneDayCandleRepository oneDayCandleRepository;
-	private final NotificationService notificationService;
+	private final AssetNotificationService assetNotificationService;
 
-	public AssetService(AssetRepository assetRepository, AssetRealtimePointRepository assetRealtimePointRepository, OneDayCandleRepository oneDayCandleRepository, NotificationService notificationService) {
+	public AssetService(AssetRepository assetRepository, AssetRealtimePointRepository assetRealtimePointRepository, OneDayCandleRepository oneDayCandleRepository, AssetNotificationService assetNotificationService) {
 		this.assetRepository = assetRepository;
 		this.assetRealtimePointRepository = assetRealtimePointRepository;
 		this.oneDayCandleRepository = oneDayCandleRepository;
-		this.notificationService = notificationService;
+		this.assetNotificationService = assetNotificationService;
 	}
 
 	public FindAssetOutputDTO find(String symbol) {
@@ -47,22 +47,23 @@ public class AssetService {
 	}
 
 
-	public List<AssetRealtimePoint> findLatestBySymbol(String symbol) {
-		final var startTime = Instant.now().minusSeconds(8 * 60 * 60); //last 4h
+	public List<AssetRealtimePoint> findRecentSeriesBySymbol(String symbol) {
+		final var startTime = Instant.now().minusSeconds(24 * 60 * 60); //last 24h
 		final var pageRequest = PageRequest.of(0, 99999);
 		return assetRealtimePointRepository.findLatestBySymbolAndTime(symbol, startTime, pageRequest);
 	}
 
-	public List<OneDayCandle> findCandlesBySymbol(String symbol) {
+	public List<OneDayCandle> findLongCandlesBySymbol(String symbol) {
 		final var startTime = Instant.now().minusSeconds(70 * 24 * 60 * 60); // 70 days ago
 		final var pageRequest = PageRequest.of(0, 100);
 		return oneDayCandleRepository.findCandlesBySymbolAndTime(symbol, startTime, pageRequest);
 	}
 
 	public void computePoint(String symbol, Float price, int shares) {
-		AssetRealtimePoint point = AssetRealtimePoint.create(symbol, price.doubleValue(), shares);
+		AssetRealtimePoint point = AssetRealtimePoint.create(symbol, price, shares);
 		this.assetRealtimePointRepository.save(point);
-		this.notificationService.sendToSubscribers(symbol, new AssetPointComputedEvent(
+		System.out.println(point);
+		this.assetNotificationService.sendToSubscribers(symbol, new AssetPointComputedEvent(
 						symbol,
 						price,
 						point.getTime()

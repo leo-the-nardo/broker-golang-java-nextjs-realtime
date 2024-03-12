@@ -1,6 +1,9 @@
 package com.leothenardo.homebroker.assets.listeners;
 
 
+import lombok.ToString;
+
+@ToString
 public class PointReceivedDTO {
 	private String symbol;
 	private Float price;

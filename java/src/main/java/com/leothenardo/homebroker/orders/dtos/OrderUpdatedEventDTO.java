@@ -1,16 +1,16 @@
 package com.leothenardo.homebroker.orders.dtos;
 
-import com.leothenardo.homebroker.orders.model.Order;
-import com.leothenardo.homebroker.orders.model.OrderStatus;
-import com.leothenardo.homebroker.orders.model.OrderType;
+import com.leothenardo.homebroker.orders.entities.Order;
+import com.leothenardo.homebroker.orders.entities.OrderStatus;
+import com.leothenardo.homebroker.orders.entities.OrderType;
 
 public record OrderUpdatedEventDTO(
 				String orderId,
-				String assetId,
+				String symbol,
 				int shares,
 				int negotiatedShares,
-				double negotiatedPrice,
-				double expectedPrice,
+				Double negotiatedPrice,
+				Double expectedPrice,
 				OrderType type,
 				OrderStatus status
 ) {

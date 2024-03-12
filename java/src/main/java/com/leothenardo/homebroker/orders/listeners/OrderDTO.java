@@ -8,11 +8,11 @@ public class OrderDTO {
 	private String order_type;
 	private String status;
 	private int partial;
-	private double price;
+	private Double price;
 	private int shares;
 	private List<TransactionDTO> transactions;
 
-	public OrderDTO(String order_id, String investor_id, String order_type, String status, int partial, double price, int shares, List<TransactionDTO> transactions) {
+	public OrderDTO(String order_id, String investor_id, String order_type, String status, int partial, Double price, int shares, List<TransactionDTO> transactions) {
 		this.order_id = order_id;
 		this.investor_id = investor_id;
 		this.order_type = order_type;
@@ -66,11 +66,11 @@ public class OrderDTO {
 		this.partial = partial;
 	}
 
-	public double getPrice() {
+	public Double getPrice() {
 		return price;
 	}
 
-	public void setPrice(double price) {
+	public void setPrice(Double price) {
 		this.price = price;
 	}
 
