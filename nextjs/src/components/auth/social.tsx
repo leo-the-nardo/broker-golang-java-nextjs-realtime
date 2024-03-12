@@ -13,6 +13,7 @@ export function Social() {
     startTransition(async () => {
       await signIn(provider, {
         callbackUrl: DEFAULT_LOGIN_REDIRECT,
+        redirect: true,
       })
     })
   }

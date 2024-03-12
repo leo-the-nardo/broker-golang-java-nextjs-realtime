@@ -8,6 +8,7 @@ export const socialLogin = async (provider: string) => {
   try {
     await signIn(provider, {
       redirectTo: DEFAULT_LOGIN_REDIRECT, // callbackUrl || DEFAULT_LOGIN_REDIRECT,
+      redirect: true,
       // redirect: false,
     })
   } catch (err) {

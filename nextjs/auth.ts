@@ -8,6 +8,7 @@ import { EmailVerification, TwoFactor } from "./custom-auth-errors"
 import { setTheCookie } from "@/actions/setthecookie"
 import { fetcherServer } from "@/lib/server-fetcher"
 import { API_URL } from "@/routes"
+import { fetcherClient } from "@/lib/client-fetcher"
 
 export const {
   handlers: { GET, POST },
@@ -125,10 +126,13 @@ export const {
         user.accessToken = accessToken
         user.refreshToken = refreshToken
         user.expiresIn = expiresIn
-        await setTheCookie(accessToken, expiresIn)
       }
       if (user.accessToken) {
-        const response = await fetcherServer(`${API_URL}/api/profile`)
+        const response = await fetch(`${API_URL}/api/profile`, {
+          headers: {
+            Authorization: `Bearer ${user.accessToken}`,
+          },
+        })
         if (
           response.status === 403 ||
           response.status === 401 ||
@@ -137,7 +141,7 @@ export const {
           console.log("not ok /api/profile: ", response.status, response)
           return false
         }
-        const userOnBack = response.json
+        const userOnBack = await response.json()
         console.log("userOnBack:", userOnBack)
         const emailVerified = userOnBack.emailVerified
         if (!emailVerified) {
