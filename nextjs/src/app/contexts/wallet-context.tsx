@@ -1,38 +1,34 @@
 "use client"
 import { createContext, useContext, useEffect, useState } from "react"
 import useSWR from "swr"
-import { fetcher } from "@/app/utils"
-import {
-  AssetsInfo,
-  AssetsInfoInResponse,
-  AssetsInfoResponse,
-  AssetsOnWalletResponse,
-} from "@/app/models"
-
+import { AssetsInfo, AssetsOnWalletResponse } from "@/app/models"
+import { fetcherClient } from "@/lib/client-fetcher"
+import useSWRImmutable from "swr/immutable"
+import { API_URL } from "@/routes"
+// import assets from "@/lib/assets.json"
 type WalletContextProps = {
   wallet: AssetsInfo[]
   updateWallet: (updateProps: {
     assetId: string
     sharesToCompute: number
   }) => Promise<void>
+  isLoading: boolean
 }
 const WalletContext = createContext<WalletContextProps>({
   wallet: [
     {
-      assetId: "",
-      name: "",
+      symbol: "",
       shares: 0,
     },
   ],
   updateWallet: async () => {},
+  isLoading: true,
 })
 
 export const WalletContextProvider = ({
   children,
-  walletId,
 }: {
   children: React.ReactNode
-  walletId: string
 }) => {
   const {
     data: walletAssetsFetch,
@@ -40,94 +36,56 @@ export const WalletContextProvider = ({
     error,
     isLoading,
   } = useSWR<AssetsOnWalletResponse>(
-    `http://localhost:8080/wallets/${walletId}/assets`,
-    fetcher,
+    `${API_URL}/wallet/assets`,
+    fetcherClient,
     {
       revalidateOnReconnect: false,
       revalidateOnFocus: false,
-      fallbackData: [
-        {
-          assetId: "",
-          shares: 0,
-        },
-      ],
+      fallbackData: [],
     },
   )
   if (error) {
     console.error(error)
   }
 
-  const [ownerSymbols, setOwnerSymbols] = useState<string>("")
-  const [assetsInfo, setAssetsInfo] = useState<AssetsInfo[]>([
-    {
-      assetId: "",
-      name: "",
-      shares: 0,
-    },
-  ])
+  const [assetsInfo, setAssetsInfo] = useState<AssetsInfo[]>([])
+
   useEffect(() => {
-    if (!walletAssetsFetch || isLoading || walletAssetsFetch.length <= 1) {
+    if (
+      !walletAssetsFetch ||
+      isLoading ||
+      walletAssetsFetch.length === 0 ||
+      !walletAssetsFetch[0] ||
+      walletAssetsFetch[0].assetId === ""
+    ) {
       return
     }
-    if (ownerSymbols !== "") {
-      return
-    }
-    setOwnerSymbols(
-      walletAssetsFetch!.map((walletAsset) => walletAsset.assetId).join(","),
-    )
-    console.log("owner effect ----", ownerSymbols)
-  }, [isLoading, walletAssetsFetch])
-  useEffect(() => {
-    if (!walletAssetsFetch || isLoading || walletAssetsFetch.length <= 1) {
-      return
-    }
-    if (ownerSymbols === "") {
-      return
-    }
-    const fetchAssets = async () => {
-      const url = `http://localhost:8080/assets/in?symbols=${ownerSymbols}`
-      console.log("URL: ---", url)
-      const assetsInfo: AssetsInfoInResponse = await fetcher(url)
-      const converted: AssetsInfo[] = []
-      console.log("ASSETS INFO ", assetsInfo)
-      assetsInfo.forEach((asset) => {
+
+    const converted: AssetsInfo[] = []
+
+    walletAssetsFetch.forEach((walletAsset) => {
+      const index = converted.findIndex(
+        (asset) => asset.symbol === walletAsset.assetId,
+      )
+      if (index !== -1) {
+        converted[index].shares = walletAsset.shares
+      } else {
         converted.push({
-          assetId: asset.symbol,
-          name: asset.name,
-          shares: 0,
+          symbol: walletAsset.assetId,
+          shares: walletAsset.shares,
         })
-      })
-      //hydrate shares in converted
-      walletAssetsFetch.forEach((walletAsset) => {
-        const index = converted.findIndex(
-          (asset) => asset.assetId === walletAsset.assetId,
-        )
-        if (index !== -1) {
-          converted[index].shares = walletAsset.shares
-        }
-      })
-      const url2 = `http://localhost:8080/assets?page=1&size=10&notIn=${ownerSymbols}`
-      const assetsInfo2: AssetsInfoResponse = await fetcher(url2)
-      const converted2: AssetsInfo[] = assetsInfo2.content.map((asset) => ({
-        assetId: asset.symbol,
-        name: asset.name,
-        shares: 0,
-      }))
-      setAssetsInfo([...converted, ...converted2])
-    }
-    fetchAssets()
-    console.log("hydrate assets effect ----", ownerSymbols)
-  }, [walletAssetsFetch, ownerSymbols])
+      }
+    })
+    setAssetsInfo(converted)
+  }, [walletAssetsFetch])
 
   const updateWallets = async (walletComing: {
     assetId: string
     sharesToCompute: number
   }) => {
-    console.log("walletComing", walletComing)
-    console.log("assets info on the start of updateWallets:", assetsInfo)
     setAssetsInfo((prev) => {
       const index = prev.findIndex(
-        (asset) => asset.assetId === walletComing.assetId,
+        (asset) => asset.symbol === walletComing.assetId,
       )
       if (index !== -1) {
         console.log("walletComing", walletComing)
@@ -139,11 +97,13 @@ export const WalletContextProvider = ({
         console.log("returning update asset info", newAssetsInfo)
         return newAssetsInfo
       } else {
-        console.log(
-          "Unexpected event, this should not happen, coming id is unknown",
-          walletComing,
-        )
-        return prev
+        const copy = [...prev]
+        //put on top
+        copy.unshift({
+          symbol: walletComing.assetId,
+          shares: walletComing.sharesToCompute,
+        })
+        return copy
       }
     })
   }
@@ -151,7 +111,11 @@ export const WalletContextProvider = ({
   console.log("walletsInfo", assetsInfo)
   return (
     <WalletContext.Provider
-      value={{ wallet: assetsInfo!, updateWallet: updateWallets }}
+      value={{
+        wallet: assetsInfo!,
+        updateWallet: updateWallets,
+        isLoading: isLoading,
+      }}
     >
       {children}
     </WalletContext.Provider>

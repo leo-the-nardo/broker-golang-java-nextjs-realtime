@@ -39,3 +39,9 @@ next-env.d.ts
 api.json
 routes.json
 *.bu
+certificates
+.env
+*upload*
+canvasUtils.ts
+imgDialog.js
+image-profile-update*

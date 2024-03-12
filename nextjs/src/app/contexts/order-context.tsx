@@ -1,21 +1,54 @@
 "use client"
-import { createContext, useContext } from "react"
+import { createContext, useContext, useState } from "react"
 import { Order, OrderUpdatedEvent, WalletOrdersResponse } from "@/app/models"
 import useSWR from "swr"
-import { fetcher } from "@/app/utils"
-import useSWRSubscription from "swr/subscription"
+
 import { useWallets } from "@/app/contexts/wallet-context"
+import { fetcherClient, syncCookie } from "@/lib/client-fetcher"
+import { toast } from "sonner"
+import useSWRSubscription from "swr/subscription"
+import { API_URL } from "@/routes"
 
 type OrderContextProps = {
-  orders: WalletOrdersResponse
+  orders: Order[]
   updateOrders: (order: WalletOrdersResponse | Order) => void
+  isLoading: boolean
 }
 const OrderContext = createContext<OrderContextProps>({
-  orders: {
-    orders: [
+  orders: [
+    {
+      id: "",
+      symbol: "",
+      type: "BUY",
+      status: "PENDING",
+      price: 0,
+      shares: 0,
+      createdAt: "",
+      partial: 0,
+      updatedAt: "",
+    },
+  ],
+  updateOrders: () => {},
+  isLoading: true,
+})
+
+export const OrderContextProvider = ({
+  children,
+}: {
+  children: React.ReactNode
+}) => {
+  const {
+    data: orders,
+    mutate: mutateOrders,
+    error,
+    isLoading,
+  } = useSWR<WalletOrdersResponse>(`${API_URL}/orders`, fetcherClient, {
+    revalidateOnReconnect: false,
+    revalidateOnFocus: false,
+    fallbackData: [
       {
         id: "",
-        assetId: "",
+        symbol: "",
         type: "BUY",
         status: "PENDING",
         price: 0,
@@ -25,98 +58,77 @@ const OrderContext = createContext<OrderContextProps>({
         updatedAt: "",
       },
     ],
-  },
-  updateOrders: () => {},
-})
-
-export const OrderContextProvider = ({
-  children,
-  walletId,
-}: {
-  children: React.ReactNode
-  walletId: string
-}) => {
-  const {
-    data: orders,
-    mutate: mutateOrders,
-    error,
-  } = useSWR<WalletOrdersResponse>(
-    `http://localhost:8080/wallets/${walletId}/orders`,
-    fetcher,
-    {
-      revalidateOnReconnect: false,
-      revalidateOnFocus: false,
-      fallbackData: {
-        orders: [
-          {
-            id: "",
-            assetId: "",
-            type: "BUY",
-            status: "PENDING",
-            price: 0,
-            shares: 0,
-            createdAt: "",
-            partial: 0,
-            updatedAt: "",
-          },
-        ],
-      },
-    },
-  )
+  })
   if (error) {
     console.error(error)
   }
 
-  const { data: ordersUpdated } = useSWRSubscription(
-    `http://localhost:8080/wallets/${walletId}/orders/events`,
-    (path, { next }) => {
-      const eventSource = new EventSource(path)
+  const [retry, setRetry] = useState(0)
+  useSWRSubscription(
+    [retry, `${API_URL}/orders/events`],
+    ([_, path], { next }) => {
+      const eventSource = new EventSource(path, {
+        withCredentials: true,
+      })
       eventSource.addEventListener("order-fulfilled", async (event) => {
-        console.log("BATEU NO ORDER FULFILLED")
-        const orderUpdatedEvent: OrderUpdatedEvent = JSON.parse(event.data)
-        await mutateOrders((prev) => {
-          const orders = prev
-          const orderToUpdateIndex = orders!.orders.findIndex(
-            (order) => order.id === orderUpdatedEvent.orderId,
-          )
-          const orderToUpdate = orders!.orders[orderToUpdateIndex]
-          const ordersUpdated = [...orders!.orders]
-          ordersUpdated[orderToUpdateIndex] = {
-            ...orderToUpdate,
-            status: "FULFILLED",
-          }
-          return { orders: ordersUpdated }
-        }, false)
-        console.log("updatingWallet on ordercontext", orderUpdatedEvent)
-        await updateWallet({
-          assetId: orderUpdatedEvent.assetId,
-          sharesToCompute:
-            orderUpdatedEvent.type === "BUY"
-              ? orderUpdatedEvent.negotiatedShares
-              : -orderUpdatedEvent.negotiatedShares,
+        const orderEvent: OrderUpdatedEvent = JSON.parse(event.data)
+        await updateOrders({
+          ...orderEvent,
+          createdAt: Date.now().toString(),
+          price: orderEvent.negotiatedPrice,
+          partial: orderEvent.negotiatedShares,
+          id: orderEvent.orderId,
+          updatedAt: Date.now().toString(),
         })
-        next(null, orderUpdatedEvent)
+        await updateWallet({
+          assetId: orderEvent.symbol,
+          sharesToCompute:
+            orderEvent.type === "BUY"
+              ? orderEvent.negotiatedShares
+              : -orderEvent.negotiatedShares,
+        })
+        toast.success(
+          `FULFILLED: ${orderEvent.negotiatedShares} ${orderEvent.symbol} ${
+            orderEvent.type === "BUY" ? "comprados" : "vendidos"
+          } a $${orderEvent.negotiatedPrice}`,
+        )
+        next(null, orderEvent)
       })
       eventSource.addEventListener("order-partial", async (event) => {
-        const orderUpdatedEvent: OrderUpdatedEvent = JSON.parse(event.data)
-        await mutateOrders((prev) => {
-          const orders = prev
-          const orderToUpdateIndex = orders!.orders.findIndex(
-            (order) => order.id === orderUpdatedEvent.orderId,
-          )
-          const orderToUpdate = orders!.orders[orderToUpdateIndex]
-          const ordersUpdated = [...orders!.orders]
-          ordersUpdated[orderToUpdateIndex] = {
-            ...orderToUpdate,
-            status: "PARTIAL",
-          }
-          return { orders: ordersUpdated }
-        }, false)
-        next(null, orderUpdatedEvent)
+        const orderEvent: OrderUpdatedEvent = JSON.parse(event.data)
+        await updateOrders({
+          ...orderEvent,
+          createdAt: Date.now().toString(),
+          price: orderEvent.negotiatedPrice,
+          partial: orderEvent.negotiatedShares,
+          id: orderEvent.orderId,
+          updatedAt: Date.now().toString(),
+        })
+        await updateWallet({
+          assetId: orderEvent.symbol,
+          sharesToCompute:
+            orderEvent.type === "BUY"
+              ? orderEvent.negotiatedShares
+              : -orderEvent.negotiatedShares,
+        })
+        toast.success(
+          `PARTIAL: ${orderEvent.negotiatedShares}  de ${orderEvent.shares} ${
+            orderEvent.symbol
+          } ${orderEvent.type === "BUY" ? "comprados" : "vendidos"} a $${
+            orderEvent.negotiatedPrice
+          }`,
+        )
+        next(null, orderEvent)
       })
+
       eventSource.onerror = (error) => {
-        console.error(error)
         eventSource.close()
+        syncCookie().then(() => {
+          //for some reason, firefox(only) closes the connection randomly so i need it
+          setTimeout(() => {
+            setRetry((prev) => prev + 1)
+          }, 2000)
+        })
       }
       return () => {
         eventSource.close()
@@ -127,38 +139,37 @@ export const OrderContextProvider = ({
   const { updateWallet } = useWallets()
 
   const updateOrders = async (order: Order | WalletOrdersResponse) => {
-    if ("orders" in order) {
-      console.log("If order.orders ----")
+    if (Array.isArray(order)) {
       await mutateOrders(order, false)
       return
     }
-    console.log("initiind mutateOrders with order: ", order)
     await mutateOrders((prev) => {
-      console.log("prev", prev)
       //update status and put the updated on top
-      const index = prev!.orders.findIndex(
+      const index = prev!.findIndex(
         (orderToFind) => orderToFind.id === order.id,
       )
       if (index !== -1) {
-        prev!.orders[index] = order
-        const elementToPutOnTop = prev!.orders[index]
-        prev!.orders.splice(index, 1)
-        prev!.orders.unshift(elementToPutOnTop)
+        prev![index] = order
+        const elementToPutOnTop = prev![index]
+        prev!.splice(index, 1)
+        prev!.unshift(elementToPutOnTop)
 
-        const newOrders = [...prev!.orders]
-        console.log("returninr new orders : ", { orders: newOrders })
-        return { orders: newOrders }
+        const newOrders = [...prev!]
+        return newOrders
       }
       //insert on top
-      prev!.orders.unshift(order)
-      const newOrders = [...prev!.orders]
-      console.log("returninr new orders : ", { orders: newOrders })
-      return { orders: newOrders }
+      prev!.unshift(order)
+      const newOrders = [...prev!]
+      return newOrders
     }, false)
   }
   return (
     <OrderContext.Provider
-      value={{ orders: orders!, updateOrders: updateOrders }}
+      value={{
+        orders: orders!,
+        updateOrders: updateOrders,
+        isLoading: isLoading,
+      }}
     >
       {children}
     </OrderContext.Provider>
