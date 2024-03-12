@@ -50,6 +50,7 @@ func (this *Book) Listen() {
 
 		matchOutput := dto.NewMatchOutput(buyOrderMatch, sellOrderMatch, transaction)
 		this.MatchChanOut <- matchOutput
+
 		if buyOrderMatch.HasShares() {
 			buyAssetQueue.AddOrder(buyOrderMatch)
 		}
@@ -70,8 +71,9 @@ func matchOrAddToQueue(order *entity.Order, buyAssetQueue *BuyOrderQueue, sellAs
 			buyAssetQueue.AddOrder(buyOrder)
 			return nil, nil, false
 		}
-		lowestSellPrice := sellAssetQueue.GetOrderWithLowestPrice().Price
-		if buyOrder.Price < lowestSellPrice {
+		lowestSellOrder := sellAssetQueue.GetOrderWithLowestPrice()
+		lowestSellPrice := lowestSellOrder.Price
+		if buyOrder.Price < lowestSellPrice || buyOrder.InvestorID == lowestSellOrder.InvestorID {
 			buyAssetQueue.AddOrder(buyOrder)
 			return nil, nil, false
 		}
@@ -83,8 +85,9 @@ func matchOrAddToQueue(order *entity.Order, buyAssetQueue *BuyOrderQueue, sellAs
 			sellAssetQueue.AddOrder(sellOrder)
 			return nil, nil, false
 		}
-		highestBuyPrice := buyAssetQueue.GetOrderWithHighestPrice().Price
-		if sellOrder.Price > highestBuyPrice {
+		highestBuyOrder := buyAssetQueue.GetOrderWithHighestPrice()
+		highestBuyPrice := highestBuyOrder.Price
+		if sellOrder.Price > highestBuyPrice || sellOrder.InvestorID == highestBuyOrder.InvestorID {
 			sellAssetQueue.AddOrder(sellOrder)
 			return nil, nil, false
 		}
